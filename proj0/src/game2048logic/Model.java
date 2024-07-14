@@ -4,6 +4,10 @@ import game2048rendering.Board;
 import game2048rendering.Side;
 import game2048rendering.Tile;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+
 import java.util.Formatter;
 
 
@@ -85,6 +89,11 @@ public class Model {
      * */
     public boolean emptySpaceExists() {
         // TODO: Task 2. Fill in this function.
+        for(int i = 0; i < this.board.size(); i++) {
+            for(int j = 0; j < this.board.size(); j++) {
+                if(this.board.tile(i,j) == null) return true;
+            }
+        }
         return false;
     }
 
@@ -95,6 +104,12 @@ public class Model {
      */
     public boolean maxTileExists() {
         // TODO: Task 3. Fill in this function.
+        for(int i = 0; i < this.board.size(); i++) {
+            for(int j = 0; j < this.board.size(); j++) {
+                if(this.board.tile(i,j) != null &&
+                this.board.tile(i,j).value() == MAX_PIECE) return true;
+            }
+        }
         return false;
     }
 
@@ -106,6 +121,24 @@ public class Model {
      */
     public boolean atLeastOneMoveExists() {
         // TODO: Fill in this function.
+        if(emptySpaceExists()) return true;
+        else{
+            Tile right_tile = null;
+            Tile down_tile = null;
+            for(int i = 0; i < this.board.size(); i++) {
+                for(int j = 0; j < this.board.size(); j++) {
+                    right_tile = down_tile = null;
+                    if(this.board.tile(i,j) != null){
+                        if( j + 1 != this.board.size()) right_tile = this.board.tile(i,j+1);
+                        if( i + 1 != this.board.size()) down_tile = this.board.tile(i+1,j);
+
+                        if(right_tile != null && right_tile.value() == this.board.tile(i,j).value()) return true;
+                        if(down_tile != null && down_tile.value() == this.board.tile(i,j).value()) return true;
+
+                    }
+                }
+            }
+        }
         return false;
     }
 
@@ -124,12 +157,33 @@ public class Model {
      *    and the trailing tile does not.
      */
     public void moveTileUpAsFarAsPossible(int x, int y) {
+        if(!atLeastOneMoveExists() || maxTileExists()) return;
         Tile currTile = board.tile(x, y);
         int myValue = currTile.value();
         int targetY = y;
+        for(int i = this.board.size() - 1; i > y; i--){
 
+            if(this.board.tile(x,i) == null && !have_blocks_col(x,y,i)){
+                targetY = i;
+                break;
+            } else if(this.board.tile(x,i).value() == myValue && !this.board.tile(x,i).wasMerged() && !have_blocks_col(x,y,i)){
+                //TODO: 增加分数
+                this.score += 2 * myValue;
+                targetY = i;
+                break;
+            }
+        }
+        if(y != targetY) this.board.move(x,targetY,currTile);
         // TODO: Tasks 5, 6, and 10. Fill in this function.
     }
+
+    public boolean have_blocks_col(int x,int y1, int y2){
+        for(int i = y1 + 1; i < y2; i++){
+            if(board.tile(x,i) != null) return true;
+        }
+        return false;
+    }
+
 
     /** Handles the movements of the tilt in column x of the board
      * by moving every tile in the column as far up as possible.
@@ -138,10 +192,51 @@ public class Model {
      * */
     public void tiltColumn(int x) {
         // TODO: Task 7. Fill in this function.
+        for(int i = this.board.size() - 1; i >= 0; i--) {
+            if(this.board.tile(x,i) != null) moveTileUpAsFarAsPossible(x,i);
+        }
+
+
+        /*
+        int targetY = 0;
+        boolean unlock = true;
+        int farest_blank = -1;
+        for(int i = this.board.size() - 1; i >= 0; i--) {
+            Tile curTile = board.tile(x,i);
+            int farest_tile_can_move = -1;
+            if(curTile == null && unlock) {
+                farest_blank = i;
+                unlock = false;
+                continue;
+            }
+            for(int j = this.board.size() - 1; j > i; j--){
+                if(this.board.tile(x,j) != null && this.board.tile(x,j).value() == curTile.value()){
+                    farest_tile_can_move = j;
+                }
+            }
+            if(farest_blank == -1 && farest_tile_can_move == -1) {
+                continue;
+            }
+            else{
+                if(this.board.tile(x,farest_tile_can_move).wasMerged()){
+                    if(curTile != null) this.board.move(x,farest_blank,curTile);
+                }else{
+                    if(curTile != null) this.board.move(x,farest_tile_can_move,curTile);
+                }
+                farest_blank = -1;
+            }
+
+        }
+         */
     }
 
     public void tilt(Side side) {
         // TODO: Tasks 8 and 9. Fill in this function.
+        this.board.setViewingPerspective(side);
+        for(int i = 0; i < this.board.size(); i++) {
+            tiltColumn(i);
+        }
+        this.board.setViewingPerspective(Side.NORTH);
     }
 
     /** Tilts every column of the board toward SIDE.
